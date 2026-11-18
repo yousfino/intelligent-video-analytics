@@ -27,3 +27,7 @@
 ## System Architecture
 
 ![alt text](docs/system_arch.png)
+
+## How Tracking Works
+
+![alt text](docs/tracking_workflow.png)
