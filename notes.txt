@@ -1,0 +1,5 @@
+Run venv from root: .\.venv\Scripts\Activate.ps1
+
+Run live detection.py: python src/video_analytics/detection.py --source 0
+
+Test a recorded video: python src/video_analytics/detection.py --source data/test.mp4
