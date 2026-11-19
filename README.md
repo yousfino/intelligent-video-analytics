@@ -31,3 +31,30 @@
 ## How Tracking Works
 
 ![alt text](docs/tracking_workflow.png)
+
+## Model Training & Evaluation Architecture
+
+![alt text](docs/train_eval_arch.png)
+
+## Dataset Strategy
+
+I'm starting with Penn-Fudan Pedestrian, a small, publicly available pedestrian dataset with 170 images and pedestrian annotations.
+It's useful for validating the entire training workflow on my RTX 4050 with 6 GB VRAM.
+Eventually, I will have to expand later to a larger dataset because this one is too small for a robust production-quality benchmark.
+The Penn-Fudan Pedestrian dataset contains 170 pedestrian images with segmentation masks and object-level bounding boxes derivable from the masks. The segmentation masks will be used to derive bouding boxes, then export YOLO and COCO annotations.
+Finally, this pedestrian dataset will be split into a deterministic 70/15/15 split, resulting with:
+
+- Training: 118 images, for fine-tuning model weights.
+- Validation: 25 images, for selecting checkpoints and tuning hyperparameters.
+- Test: 27 images, for final evaluation only.
+
+## Training Plan
+
+Using my NVIDIA RTX 4050 GPU with 6 GM VRAM, I will keep the experiments relatively small:
+![alt text](docs/training_plan.png)
+
+## Current Limitations
+
+The following limitations need to be addressed after successful development:
+
+- Dataset is small and the split has substantial statistical uncertainty.
