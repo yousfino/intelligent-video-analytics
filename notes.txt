@@ -65,16 +65,22 @@ python -m src.video_analytics.training.train_rf_detr `
   --grad-accum 4
 
 
+Sprint 4
+Run YOLO model:
+$env:PYTHONPATH = "src"
+
+python scripts/run_pipeline.py --model yolo
+
+Run RF-DETR model:
+python scripts/run_pipeline.py --model rfdetr
+
+
 Verifications:
 - Python version: py -3.11 --version
 - GPU acceleration: python -c "import torch; print('CUDA available:', torch.cuda.is_available()); print('GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'None')"
 - Ultralytics' integrated ByteTrack is available: python -c "import ultralytics; print(ultralytics.__version__)"
 - MLflow (experiment-tracking framework): python -c "import mlflow; print(mlflow.__version__)"
 
-
-
-Must revisit:
-- MLflow experiment tracking
 
 Search for a particular file name within parent/root directory:
 - Get-ChildItem -Path . -Filter "best.pt" -Recurse
