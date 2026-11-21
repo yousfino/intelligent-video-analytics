@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build CPU image
+        run: |
+          docker build \
+            -t intelligent-video-analytics:cpu \
+            -f Dockerfile .
+
+      - name: Build test image
+        run: |
+          docker build \
+            -t intelligent-video-analytics:test \
+            -f Dockerfile.test .
+
+      - name: Run automated tests
+        run: |
+          docker run --rm intelligent-video-analytics:test

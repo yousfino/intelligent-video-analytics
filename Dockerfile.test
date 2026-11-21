@@ -1,0 +1,8 @@
+
+FROM intelligent-video-analytics:cpu
+
+RUN python -m pip install --no-cache-dir pytest==9.2.0
+
+COPY tests/ ./tests/
+
+CMD ["python", "-m", "pytest", "tests/", "-v"]
