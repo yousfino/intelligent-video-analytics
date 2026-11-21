@@ -1,0 +1,8 @@
+numpy
+torch==2.14.1
+torchvision==0.29.1
+ultralytics==8.4.215
+rfdetr==1.12.1
+supervision==0.29.0
+opencv-python-headless==5.1.0.95
+PyYAML==6.0.3
