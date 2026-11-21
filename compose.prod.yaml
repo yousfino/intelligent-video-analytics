@@ -1,0 +1,36 @@
+services:
+  analytics:
+    image: intelligent-video-analytics:gpu
+
+    gpus: all
+
+    working_dir: /app
+
+    environment:
+      PYTHONPATH: /app/src
+      PYTHONUNBUFFERED: "1"
+
+    volumes:
+      - ./inputs:/app/inputs:ro
+      - ./outputs:/app/outputs
+      - ./configs:/app/configs:ro
+
+    command:
+      - python
+      - scripts/run_headless.py
+      - --source
+      - ${ANALYTICS_SOURCE:-/app/inputs/test_video.mp4}
+      - --model
+      - ${ANALYTICS_MODEL:-yolo}
+      - --events
+      - /app/outputs/events/${ANALYTICS_MODEL:-yolo}-production.jsonl
+      - --summary
+      - /app/outputs/headless/${ANALYTICS_MODEL:-yolo}-production-summary.json
+
+    restart: "no"
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
