@@ -75,6 +75,38 @@ Run RF-DETR model:
 python scripts/run_pipeline.py --model rfdetr
 
 
+Sprint 5
+Docker Build:
+- docker build -t intelligent-video-analytics:cpu .
+
+Once the build succeeds, run the container:
+- docker run --rm intelligent-video-analytics:cpu
+
+Build & Run Docker tests:
+docker build -f Dockerfile.test -t intelligent-video-analytics:test .
+docker run --rm intelligent-video-analytics:test
+
+Build the GPU image:
+- docker build -f Dockerfile.gpu -t intelligent-video-analytics:gpu .
+
+Validate PyTorch CUDA inside Docker:
+- docker run --rm --gpus all intelligent-video-analytics:gpu
+
+Execute an actual GPU computation:
+- docker run --rm --gpus all intelligent-video-analytics:gpu python -c "import torch; a=torch.randn(1024,1024,device='cuda'); b=a@a; torch.cuda.synchronize(); print('GPU computation successful:',b.shape)"
+
+Run on a recorded video:
+$env:PYTHONPATH = "src"
+
+python scripts/run_headless.py `
+  --source inputs/test_video.mp4 `
+  --model yolo `
+  --summary outputs/headless/summary.json
+
+Run headless inference inside Docker:
+- docker build -f Dockerfile.gpu -t intelligent-video-analytics:gpu .
+
+
 Verifications:
 - Python version: py -3.11 --version
 - GPU acceleration: python -c "import torch; print('CUDA available:', torch.cuda.is_available()); print('GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'None')"
