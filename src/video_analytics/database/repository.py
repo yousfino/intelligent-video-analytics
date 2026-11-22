@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from video_analytics.database.connection import create_db_engine
 from video_analytics.database.models import IntrusionEvent
+from sqlalchemy import func, select
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,48 @@ class IntrusionEventRepository:
             session.refresh(record)
 
         return record
+    
+    
+    def list_events(
+        self,
+        limit: int = 20,
+        offset: int = 0,
+        model: str | None = None,
+        zone: str | None = None,
+    ) -> tuple[list[IntrusionEvent], int]:
+        filters = []
+
+        if model is not None:
+            filters.append(IntrusionEvent.model == model)
+
+        if zone is not None:
+            filters.append(IntrusionEvent.zone == zone)
+
+        count_query = (
+            select(func.count())
+            .select_from(IntrusionEvent)
+            .where(*filters)
+        )
+
+        events_query = (
+            select(IntrusionEvent)
+            .where(*filters)
+            .order_by(
+                IntrusionEvent.timestamp.desc(),
+                IntrusionEvent.id.desc(),
+            )
+            .limit(limit)
+            .offset(offset)
+        )
+
+        with self.session_factory() as session:
+            total = session.scalar(count_query) or 0
+            events = list(
+                session.scalars(events_query).all()
+            )
+
+        return events, total
+
 
 
 def create_event_repository():
