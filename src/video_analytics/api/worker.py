@@ -11,6 +11,11 @@ from video_analytics.pipeline import AnalyticsPipeline
 from video_analytics.stream import VideoStream
 from video_analytics.tracker import ByteTrackTracker
 from video_analytics.zones import RestrictedZone
+import os
+
+from video_analytics.database.repository import (
+    create_event_repository,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +118,22 @@ class AnalyticsWorker:
             event_logger = EventLogger(
                 config["events"]["output_path"]
             )
+            
+            database_enabled = (
+                os.getenv("ANALYTICS_DATABASE_ENABLED", "false")
+                .lower() == "true"
+            )
+
+            event_repository = None
+
+            if database_enabled:
+                try:
+                    event_repository = create_event_repository()
+                    logger.info("PostgreSQL event persistence enabled")
+                except Exception:
+                    logger.exception(
+                        "Unable to initialize database repository"
+                    )
 
             pipeline = AnalyticsPipeline(
                 detector=detector,
@@ -148,6 +169,17 @@ class AnalyticsWorker:
                 )
 
                 intrusion_events += len(result.events)
+                
+                if event_repository is not None:
+                    for event in result.events:
+                        try:
+                            event_repository.save(event)
+                        except Exception:
+                            logger.exception(
+                                "Failed to persist intrusion event "
+                                "at frame %s",
+                                frames_processed,
+                            )
 
                 elapsed = (
                     time.perf_counter() - started_at
