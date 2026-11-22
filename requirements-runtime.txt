@@ -6,3 +6,6 @@ rfdetr==1.12.1
 supervision==0.29.0
 opencv-python-headless==5.1.0.95
 PyYAML==6.0.3
+fastapi
+uvicorn
+httpx

@@ -151,3 +151,17 @@ After: model = RFDETRNano(gradient_checkpointing=True)
 
 Problem 2: While training, validating, and recording the results on MLflow for both the YOLOn and the RF-DETR nano, I noticed that both models name their metrics differently.
 Solution 2: Created scripts backfill_rfdetr_mlflow.py and backfill_yolo_mlflow.py, where I pass the Run ID and the csv files that contain the metrics and corresponding values.
+
+
+
+=======================================
+Start the API locally:
+python -m uvicorn video_analytics.api.app:app `
+  --host 127.0.0.1 `
+  --port 8000
+
+Endpoint local URLs:
+- http://127.0.0.1:8000/docs (Swagger UI)
+- http://127.0.0.1:8000/health
+- http://127.0.0.1:8000/status
+- http://127.0.0.1:8000/metrics
