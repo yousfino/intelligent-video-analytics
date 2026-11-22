@@ -17,6 +17,8 @@ from video_analytics.database.repository import (
     create_event_repository,
 )
 
+from video_analytics.database.writer import AsyncEventWriter
+
 logger = logging.getLogger(__name__)
 
 
@@ -124,16 +126,36 @@ class AnalyticsWorker:
                 .lower() == "true"
             )
 
-            event_repository = None
+            
+            event_writer = None
 
             if database_enabled:
                 try:
                     event_repository = create_event_repository()
-                    logger.info("PostgreSQL event persistence enabled")
+
+                    event_writer = AsyncEventWriter(
+                        repository=event_repository,
+                        max_queue_size=1000,
+                        max_attempts=3,
+                        retry_delay=0.5,
+                        on_close=event_repository.engine.dispose,
+                    )
+
+                    event_writer.start()
+
+                    logger.info(
+                        "Asynchronous PostgreSQL persistence enabled"
+                    )
+
                 except Exception:
                     logger.exception(
-                        "Unable to initialize database repository"
+                        "Unable to initialize database writer"
                     )
+                    if event_writer is not None:
+                        event_writer.stop()
+                    elif "event_repository" in locals():
+                        event_repository.engine.dispose()
+                    event_writer = None
 
             pipeline = AnalyticsPipeline(
                 detector=detector,
@@ -170,16 +192,9 @@ class AnalyticsWorker:
 
                 intrusion_events += len(result.events)
                 
-                if event_repository is not None:
+                if event_writer is not None:
                     for event in result.events:
-                        try:
-                            event_repository.save(event)
-                        except Exception:
-                            logger.exception(
-                                "Failed to persist intrusion event "
-                                "at frame %s",
-                                frames_processed,
-                            )
+                        event_writer.submit(event)
 
                 elapsed = (
                     time.perf_counter() - started_at
@@ -217,6 +232,21 @@ class AnalyticsWorker:
             )
 
         finally:
+            
+            if "event_writer" in locals() and event_writer is not None:
+                stopped = event_writer.stop(timeout=15.0)
+
+                logger.info(
+                    "Database writer stopped=%s stats=%s",
+                    stopped,
+                    event_writer.snapshot(),
+                )
+
+                if not stopped:
+                    logger.warning(
+                        "Database writer did not finish draining"
+                    )
+
             if self.stream is not None:
                 self.stream.stop()
 

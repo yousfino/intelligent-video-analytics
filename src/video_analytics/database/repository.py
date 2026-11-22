@@ -80,6 +80,7 @@ class IntrusionEventRepository:
 
 
 
+
 def create_event_repository():
     engine = create_db_engine()
 
@@ -88,4 +89,7 @@ def create_event_repository():
         expire_on_commit=False,
     )
 
-    return IntrusionEventRepository(session_factory)
+    repository = IntrusionEventRepository(session_factory)
+    repository.engine = engine
+
+    return repository

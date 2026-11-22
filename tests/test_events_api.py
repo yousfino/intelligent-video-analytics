@@ -85,20 +85,35 @@ def test_event_filters():
         app.dependency_overrides.clear()
 
 
+
 def test_invalid_pagination():
-    client = TestClient(app)
+    repository = MagicMock()
 
-    assert client.get(
-        "/events?limit=0"
-    ).status_code == 422
+    app.dependency_overrides[get_event_repository] = (
+        lambda: repository
+    )
 
-    assert client.get(
-        "/events?limit=101"
-    ).status_code == 422
+    try:
+        client = TestClient(app)
 
-    assert client.get(
-        "/events?offset=-1"
-    ).status_code == 422
+        assert client.get(
+            "/events?limit=0"
+        ).status_code == 422
+
+        assert client.get(
+            "/events?limit=101"
+        ).status_code == 422
+
+        assert client.get(
+            "/events?offset=-1"
+        ).status_code == 422
+
+        # Invalid requests should never query the database.
+        repository.list_events.assert_not_called()
+
+    finally:
+        app.dependency_overrides.clear()
+
 
 
 def test_database_unavailable():
