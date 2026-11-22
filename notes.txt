@@ -155,7 +155,7 @@ Solution 2: Created scripts backfill_rfdetr_mlflow.py and backfill_yolo_mlflow.p
 
 
 =======================================
-Start the API locally:
+Start the API locally (Uvicorn, FastAPI):
 python -m uvicorn video_analytics.api.app:app `
   --host 127.0.0.1 `
   --port 8000

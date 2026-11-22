@@ -19,6 +19,11 @@ from video_analytics.database.repository import (
 
 from video_analytics.database.writer import AsyncEventWriter
 
+from video_analytics.api.prometheus_metrics import (
+    update_worker_metrics,
+    update_database_metrics,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -212,6 +217,15 @@ class AnalyticsWorker:
                         throughput, 2
                     ),
                 )
+                
+                update_worker_metrics(
+                    frames=frames_processed,
+                    intrusions=intrusion_events,
+                    fps=throughput,
+                )
+
+                if event_writer is not None:
+                    update_database_metrics(event_writer.snapshot())
 
                 if frames_processed % 100 == 0:
                     logger.info(

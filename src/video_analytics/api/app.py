@@ -16,6 +16,13 @@ from video_analytics.database.repository import (
     create_event_repository,
 )
 
+from fastapi.responses import Response
+
+from video_analytics.api.prometheus_metrics import (
+    render_metrics,
+    CONTENT_TYPE_LATEST,
+)
+
 logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
@@ -145,3 +152,9 @@ def list_events(
             detail="Event database unavailable",
         )
 
+@app.get("/prometheus", include_in_schema=False)
+def prometheus_metrics():
+    return Response(
+        content=render_metrics(),
+        media_type=CONTENT_TYPE_LATEST,
+    )
