@@ -165,3 +165,16 @@ Endpoint local URLs:
 - http://127.0.0.1:8000/health
 - http://127.0.0.1:8000/status
 - http://127.0.0.1:8000/metrics
+
+Start PostgreSQL locally:
+- $env:POSTGRES_PASSWORD = check .env
+- Open Docker
+- docker compose -f compose.db.yaml up -d
+- docker compose -f compose.db.yaml ps
+Open a PostgreSQL shell inside the container:
+docker exec -it iva-postgres `
+  psql -U analytics -d video_analytics
+
+Execute:
+- SELECT current_database(), current_user, version();
+Exit: \q
