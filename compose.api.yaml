@@ -1,0 +1,36 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    image: intelligent-video-analytics:cpu-api
+    container_name: iva-api
+
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:8000:8000"
+
+    environment:
+      PYTHONPATH: /app/src
+      PYTHONUNBUFFERED: "1"
+
+      ANALYTICS_MODEL: yolo
+      ANALYTICS_SOURCE: /app/inputs/test_video.mp4
+      ANALYTICS_LOOP: "true"
+      ANALYTICS_CONFIG: configs/pipeline.docker-cpu.yaml
+
+      ANALYTICS_DATABASE_ENABLED: "true"
+
+      POSTGRES_HOST: host.docker.internal
+      POSTGRES_PORT: "5435"
+      POSTGRES_USER: analytics
+      POSTGRES_DB: video_analytics
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+
+    volumes:
+      - ./inputs:/app/inputs:ro
+      - ./outputs:/app/outputs
+      - ./configs:/app/configs:ro
+      - ./outputs/training:/app/outputs/training:ro

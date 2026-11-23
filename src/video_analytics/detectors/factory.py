@@ -29,7 +29,7 @@ def create_detector(config: dict) -> BaseDetector:
         return YOLODetector(
             weights=str(weights),
             confidence=confidence,
-            device=int(settings.get("device", 0)),
+            device=settings.get("device", 0),
             image_size=int(
                 settings.get("image_size", 640)
             ),

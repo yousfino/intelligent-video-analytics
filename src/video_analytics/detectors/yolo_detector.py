@@ -11,7 +11,7 @@ class YOLODetector(BaseDetector):
         self,
         weights: str,
         confidence: float = 0.10,
-        device: int = 0,
+        device: int | str = 0,
         image_size: int = 640,
     ):
         self.model = YOLO(weights)

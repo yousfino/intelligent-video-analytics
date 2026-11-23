@@ -33,4 +33,6 @@ COPY src/ ./src/
 COPY scripts/ ./scripts/
 COPY configs/ ./configs/
 
-CMD ["python", "-c", "import torch, cv2, rfdetr, supervision, ultralytics; print('Inference dependencies loaded successfully'); print('PyTorch:', torch.__version__); print('CUDA available:', torch.cuda.is_available())"]
+EXPOSE 8000
+
+CMD ["python", "-m", "uvicorn", "video_analytics.api.app:app", "--host", "0.0.0.0", "--port", "8000"]

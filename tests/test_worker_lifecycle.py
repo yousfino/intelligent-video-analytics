@@ -12,6 +12,7 @@ from video_analytics.api.worker import AnalyticsWorker
 
 
 def test_worker_starts_on_api_startup(monkeypatch):
+    monkeypatch.delenv("ANALYTICS_CONFIG", raising=False)
     monkeypatch.setenv("ANALYTICS_SOURCE", "0")
     monkeypatch.setenv("ANALYTICS_MODEL", "yolo")
     monkeypatch.setenv("ANALYTICS_LOOP", "false")
@@ -27,6 +28,7 @@ def test_worker_starts_on_api_startup(monkeypatch):
                 source=0,
                 model="yolo",
                 loop_file=False,
+                config_path="configs/pipeline.yaml",
             )
 
             mock_worker.start.assert_called_once()

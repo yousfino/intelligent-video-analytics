@@ -57,6 +57,10 @@ async def lifespan(app: FastAPI):
         source=source,
         model=model,
         loop_file=loop_file,
+        config_path=os.getenv(
+            "ANALYTICS_CONFIG",
+            "configs/pipeline.yaml",
+        ),
     )
 
     app.state.analytics_worker = worker

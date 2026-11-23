@@ -1,0 +1,29 @@
+detector:
+  model: yolo
+  confidence: 0.10
+
+  yolo:
+    weights: outputs/training/yolo-penn-fudan/weights/best.pt
+    image_size: 640
+    device: cpu
+
+  rfdetr:
+    weights: outputs/training/rfdetr-penn-fudan/checkpoint_best_total.pth
+
+video:
+  source: inputs/test_video.mp4
+
+tracking:
+  enabled: true
+  tracker: bytetrack
+  frame_rate: 30
+  track_activation_threshold: 0.25
+  lost_track_buffer: 30
+  minimum_matching_threshold: 0.8
+
+zones:
+  enabled: true
+  config_path: configs/zones.json
+
+events:
+  output_path: outputs/events/intrusions.jsonl
