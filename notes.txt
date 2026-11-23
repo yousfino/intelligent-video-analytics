@@ -181,6 +181,7 @@ Endpoint local URLs:
 - http://127.0.0.1:8000/metrics
 - http://localhost:9090/targets (Prometheus Targets)
 - http://localhost:9090/query (Prometheus Query UI)
+- http://localhost:3000/login (Grafana, user:admin, pass:Grafana admin password)
 
 Start PostgreSQL locally:
 - $env:POSTGRES_PASSWORD = check .env

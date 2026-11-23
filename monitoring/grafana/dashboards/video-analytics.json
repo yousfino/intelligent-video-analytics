@@ -1,0 +1,121 @@
+{
+  "uid": "iva-overview",
+  "title": "Intelligent Video Analytics - Overview",
+  "tags": ["video-analytics", "monitoring"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Inference FPS",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "iva_throughput_fps", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": { "unit": "fps", "min": 0 },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Frames Processed",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "iva_frames_processed", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": { "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "title": "Intrusion Events Detected",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 8, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "iva_intrusion_events", "refId": "A", "instant": true }
+      ],
+      "fieldConfig": {
+        "defaults": { "decimals": 0, "min": 0 },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "title": "Database Events Saved",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 8, "x": 8, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "iva_db_events_saved", "refId": "A", "instant": true }
+      ],
+      "fieldConfig": {
+        "defaults": { "decimals": 0, "min": 0 },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "title": "Database Write Failures",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "iva_db_events_failed", "refId": "A", "instant": true }
+      ],
+      "fieldConfig": {
+        "defaults": { "decimals": 0, "min": 0 },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 6,
+      "title": "Database Queue Depth",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 13 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "iva_db_queue_depth", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": { "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "title": "Dropped Database Events",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 13 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "iva_db_events_dropped", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": { "min": 0 },
+        "overrides": []
+      }
+    }
+  ]
+}
