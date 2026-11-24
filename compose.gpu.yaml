@@ -1,0 +1,13 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.gpu
+
+    image: intelligent-video-analytics:gpu-api
+
+    gpus: all
+
+    environment:
+      ANALYTICS_MODEL: yolo
+      ANALYTICS_CONFIG: configs/pipeline.docker-gpu.yaml

@@ -32,4 +32,6 @@ COPY src/ ./src/
 COPY scripts/ ./scripts/
 COPY configs/ ./configs/
 
-CMD ["python", "-c", "import torch; print('PyTorch:', torch.__version__); print('CUDA available:', torch.cuda.is_available()); print('GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'None')"]
+EXPOSE 8000
+
+CMD ["python", "-m", "uvicorn", "video_analytics.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
