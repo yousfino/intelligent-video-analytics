@@ -29,7 +29,13 @@ def create_db_engine():
 
 
 def check_database_connection():
-    engine = create_db_engine()
+    engine = create_engine(
+        get_database_url(),
+        connect_args={
+            "connect_timeout": 3,
+            "options": "-c statement_timeout=3000",
+        },
+    )
 
     try:
         with engine.connect() as connection:
@@ -38,5 +44,6 @@ def check_database_connection():
             )
 
             return result.scalar_one()
+
     finally:
         engine.dispose()

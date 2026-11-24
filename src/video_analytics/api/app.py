@@ -23,6 +23,12 @@ from video_analytics.api.prometheus_metrics import (
     CONTENT_TYPE_LATEST,
 )
 
+from fastapi.responses import JSONResponse
+
+from video_analytics.api.readiness import (
+    evaluate_readiness,
+)
+
 logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
@@ -93,6 +99,25 @@ def health():
         "service": "intelligent-video-analytics",
     }
 
+@app.get("/live")
+def liveness():
+    return {
+        "status": "alive",
+        "service": "intelligent-video-analytics",
+    }
+
+
+@app.get("/ready")
+def readiness():
+    result = evaluate_readiness()
+
+    return JSONResponse(
+        status_code=(
+            200 if result["status"] == "ready"
+            else 503
+        ),
+        content=result,
+    )
 
 @app.get("/status")
 def status():

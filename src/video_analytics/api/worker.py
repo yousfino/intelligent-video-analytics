@@ -61,6 +61,7 @@ class AnalyticsWorker:
             intrusion_events=0,
             throughput_fps=0.0,
             error=None,
+            last_frame_monotonic=None,
         )
 
         self.thread = threading.Thread(
@@ -213,9 +214,8 @@ class AnalyticsWorker:
                 worker_state.update(
                     frames_processed=frames_processed,
                     intrusion_events=intrusion_events,
-                    throughput_fps=round(
-                        throughput, 2
-                    ),
+                    throughput_fps=round(throughput, 2),
+                    last_frame_monotonic=time.monotonic(),
                 )
                 
                 update_worker_metrics(

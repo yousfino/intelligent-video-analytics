@@ -22,6 +22,7 @@ class WorkerSnapshot:
     intrusion_events: int = 0
     throughput_fps: float = 0.0
     error: str | None = None
+    last_frame_monotonic: float | None = None
 
 
 class WorkerState:
@@ -36,6 +37,7 @@ class WorkerState:
                     raise ValueError(
                         f"Unknown worker field: {key}"
                     )
+
                 setattr(self._snapshot, key, value)
 
     def snapshot(self) -> dict:
