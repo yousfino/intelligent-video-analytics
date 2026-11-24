@@ -9,5 +9,5 @@ services:
     gpus: all
 
     environment:
-      ANALYTICS_MODEL: yolo
+      ANALYTICS_MODEL: ${ANALYTICS_MODEL:-yolo}
       ANALYTICS_CONFIG: configs/pipeline.docker-gpu.yaml

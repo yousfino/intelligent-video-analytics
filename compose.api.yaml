@@ -16,7 +16,7 @@ services:
       PYTHONPATH: /app/src
       PYTHONUNBUFFERED: "1"
 
-      ANALYTICS_MODEL: yolo
+      ANALYTICS_MODEL: ${ANALYTICS_MODEL:-yolo}
       ANALYTICS_SOURCE: /app/inputs/test_video.mp4
       ANALYTICS_LOOP: "true"
       ANALYTICS_CONFIG: configs/pipeline.docker-cpu.yaml
