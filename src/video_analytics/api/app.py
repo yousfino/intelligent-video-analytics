@@ -29,6 +29,8 @@ from video_analytics.api.readiness import (
     evaluate_readiness,
 )
 
+from video_analytics.api.watchdog import WorkerWatchdog
+
 logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
@@ -36,6 +38,7 @@ logger = logging.getLogger(__name__)
 
 def parse_source(value: str) -> str | int:
     return int(value) if value.isdecimal() else value
+
 
 
 @asynccontextmanager
@@ -69,16 +72,68 @@ async def lifespan(app: FastAPI):
         ),
     )
 
+    watchdog_enabled = (
+        os.getenv(
+            "ANALYTICS_WATCHDOG_ENABLED",
+            "false",
+        ).lower() == "true"
+    )
+
+    watchdog = None
+
+    if watchdog_enabled:
+        watchdog = WorkerWatchdog(
+            check_interval=float(
+                os.getenv(
+                    "ANALYTICS_WATCHDOG_INTERVAL_SECONDS",
+                    "5",
+                )
+            ),
+            startup_timeout=float(
+                os.getenv(
+                    "ANALYTICS_WATCHDOG_STARTUP_TIMEOUT_SECONDS",
+                    "120",
+                )
+            ),
+            frame_timeout=float(
+                os.getenv(
+                    "ANALYTICS_WATCHDOG_FRAME_TIMEOUT_SECONDS",
+                    "60",
+                )
+            ),
+            reconnect_timeout=float(
+                os.getenv(
+                    "ANALYTICS_WATCHDOG_RECONNECT_TIMEOUT_SECONDS",
+                    "0",
+                )
+            ),
+        )
+
     app.state.analytics_worker = worker
+    app.state.worker_watchdog = watchdog
 
     logger.info("Starting analytics worker")
     worker.start()
 
     try:
+        if watchdog is not None:
+            watchdog.start()
+
         yield
+
     finally:
+        if watchdog is not None:
+            logger.info("Stopping worker watchdog")
+
+            if not watchdog.stop():
+                logger.error(
+                    "Watchdog failed to stop cleanly"
+                )
+
         logger.info("Stopping analytics worker")
+
         stopped = worker.stop()
+
         if not stopped:
             logger.error(
                 "Analytics worker failed to stop cleanly"
