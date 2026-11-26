@@ -29,7 +29,7 @@ def evaluate_readiness() -> dict:
     )
 
     checks["worker_running"] = worker_running
-    
+
     stream_connected = snapshot["stream_connected"]
 
     checks["stream_connected"] = stream_connected

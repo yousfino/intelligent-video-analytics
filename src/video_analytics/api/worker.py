@@ -98,7 +98,7 @@ class AnalyticsWorker:
 
         return True
 
-    
+
     def _on_stream_state_change(
         self,
         state: str,
@@ -137,8 +137,8 @@ class AnalyticsWorker:
                 stream_connected=False,
                 last_frame_monotonic=None,
             )
-    
-    
+
+
     def _run(self):
         frames_processed = 0
         intrusion_events = 0
@@ -172,13 +172,13 @@ class AnalyticsWorker:
             event_logger = EventLogger(
                 config["events"]["output_path"]
             )
-            
+
             database_enabled = (
                 os.getenv("ANALYTICS_DATABASE_ENABLED", "false")
                 .lower() == "true"
             )
 
-            
+
             event_writer = None
 
             if database_enabled:
@@ -270,7 +270,7 @@ class AnalyticsWorker:
                     )
 
                     intrusion_events += len(result.events)
-                    
+
                     if event_writer is not None:
                         for event in result.events:
                             event_writer.submit(event)
@@ -295,7 +295,7 @@ class AnalyticsWorker:
                         throughput_fps=round(throughput, 2),
                         last_frame_monotonic=time.monotonic(),
                     )
-                    
+
                     update_worker_metrics(
                         frames=frames_processed,
                         intrusions=intrusion_events,
@@ -324,7 +324,7 @@ class AnalyticsWorker:
             )
 
         finally:
-            
+
             if "event_writer" in locals() and event_writer is not None:
                 stopped = event_writer.stop(timeout=15.0)
 
@@ -341,7 +341,7 @@ class AnalyticsWorker:
 
             if self.stream is not None:
                 self.stream.stop()
-            
+
             worker_state.update(
                 stream_connected=False,
                 last_frame_monotonic=None,
