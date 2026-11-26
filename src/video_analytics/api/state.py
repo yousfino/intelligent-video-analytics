@@ -23,6 +23,9 @@ class WorkerSnapshot:
     throughput_fps: float = 0.0
     error: str | None = None
     last_frame_monotonic: float | None = None
+    stream_connected: bool = False
+    reconnect_attempts: int = 0
+    total_reconnections: int = 0
 
 
 class WorkerState:

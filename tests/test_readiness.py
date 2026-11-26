@@ -32,6 +32,9 @@ def reset_readiness_state(monkeypatch):
         status=WorkerStatus.RUNNING,
         frames_processed=100,
         last_frame_monotonic=time.monotonic(),
+        stream_connected=True,
+        reconnect_attempts=0,
+        total_reconnections=0,
         error=None,
     )
 
@@ -155,3 +158,59 @@ def test_liveness_survives_worker_failure():
 
     assert client.get("/live").status_code == 200
     assert client.get("/ready").status_code == 503
+
+
+def test_not_ready_with_disconnected_stream():
+    worker_state.update(
+        stream_connected=False,
+    )
+
+    response = client.get("/ready")
+
+    assert response.status_code == 503
+
+    assert response.json()["checks"][
+        "stream_connected"
+    ] is False
+
+
+def test_readiness_recovers_after_reconnection():
+    worker_state.update(
+        status=WorkerStatus.RECONNECTING,
+        stream_connected=False,
+        last_frame_monotonic=None,
+        reconnect_attempts=2,
+    )
+
+    assert client.get("/ready").status_code == 503
+    assert client.get("/live").status_code == 200
+
+    worker_state.update(
+        status=WorkerStatus.RUNNING,
+        stream_connected=True,
+        last_frame_monotonic=time.monotonic(),
+        reconnect_attempts=0,
+        total_reconnections=1,
+    )
+
+    assert client.get("/ready").status_code == 200
+
+
+def test_stream_reconnection_state_in_status():
+    worker_state.update(
+        status=WorkerStatus.RECONNECTING,
+        stream_connected=False,
+        reconnect_attempts=3,
+        total_reconnections=2,
+    )
+
+    response = client.get("/status")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["status"] == "RECONNECTING"
+    assert data["stream_connected"] is False
+    assert data["reconnect_attempts"] == 3
+    assert data["total_reconnections"] == 2

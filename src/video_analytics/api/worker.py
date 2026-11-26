@@ -24,6 +24,8 @@ from video_analytics.api.prometheus_metrics import (
     update_database_metrics,
 )
 
+from contextlib import closing
+
 logger = logging.getLogger(__name__)
 
 
@@ -62,6 +64,9 @@ class AnalyticsWorker:
             throughput_fps=0.0,
             error=None,
             last_frame_monotonic=None,
+            stream_connected=False,
+            reconnect_attempts=0,
+            total_reconnections=0,
         )
 
         self.thread = threading.Thread(
@@ -93,6 +98,47 @@ class AnalyticsWorker:
 
         return True
 
+    
+    def _on_stream_state_change(
+        self,
+        state: str,
+        attempts: int,
+    ):
+        if self.stop_event.is_set():
+            return
+
+        if state == "RECONNECTING":
+            worker_state.update(
+                status=WorkerStatus.RECONNECTING,
+                stream_connected=False,
+                reconnect_attempts=attempts,
+                last_frame_monotonic=None,
+            )
+
+        elif state == "CONNECTED":
+            snapshot = worker_state.snapshot()
+
+            total_reconnections = snapshot[
+                "total_reconnections"
+            ]
+
+            if snapshot["frames_processed"] > 0:
+                total_reconnections += 1
+
+            worker_state.update(
+                stream_connected=True,
+                reconnect_attempts=0,
+                total_reconnections=total_reconnections,
+                error=None,
+            )
+
+        elif state == "STOPPED":
+            worker_state.update(
+                stream_connected=False,
+                last_frame_monotonic=None,
+            )
+    
+    
     def _run(self):
         frames_processed = 0
         intrusion_events = 0
@@ -174,66 +220,98 @@ class AnalyticsWorker:
             if self.stop_event.is_set():
                 return
 
+            reconnect_delay = float(
+                os.getenv(
+                    "ANALYTICS_RECONNECT_DELAY_SECONDS",
+                    "3",
+                )
+            )
+
+            max_retries_value = int(
+                os.getenv(
+                    "ANALYTICS_MAX_RECONNECT_ATTEMPTS",
+                    "0",
+                )
+            )
+
+            if max_retries_value < 0:
+                raise ValueError(
+                    "Maximum reconnect attempts must be >= 0"
+                )
+
+            max_retries = (
+                None
+                if max_retries_value == 0
+                else max_retries_value
+            )
+
             self.stream = VideoStream(
                 source=self.source,
-                reconnect_delay=3.0,
-                max_retries=None,
+                reconnect_delay=reconnect_delay,
+                max_retries=max_retries,
                 loop_file=self.loop_file,
+                on_state_change=self._on_stream_state_change,
             )
 
-            worker_state.update(
-                status=WorkerStatus.RUNNING
-            )
+            if self.stop_event.is_set():
+                self.stream.stop()
+                return
 
-            for frame in self.stream.frames():
-                if self.stop_event.is_set():
-                    break
+            with closing(self.stream.frames()) as frames:
+                for frame in frames:
+                    if self.stop_event.is_set():
+                        break
 
-                frames_processed += 1
+                    frames_processed += 1
 
-                result = pipeline.process_frame(
-                    frame,
-                    frames_processed,
-                )
-
-                intrusion_events += len(result.events)
-                
-                if event_writer is not None:
-                    for event in result.events:
-                        event_writer.submit(event)
-
-                elapsed = (
-                    time.perf_counter() - started_at
-                )
-
-                throughput = (
-                    frames_processed / elapsed
-                    if elapsed > 0 else 0.0
-                )
-
-                worker_state.update(
-                    frames_processed=frames_processed,
-                    intrusion_events=intrusion_events,
-                    throughput_fps=round(throughput, 2),
-                    last_frame_monotonic=time.monotonic(),
-                )
-                
-                update_worker_metrics(
-                    frames=frames_processed,
-                    intrusions=intrusion_events,
-                    fps=throughput,
-                )
-
-                if event_writer is not None:
-                    update_database_metrics(event_writer.snapshot())
-
-                if frames_processed % 100 == 0:
-                    logger.info(
-                        "Frames=%s FPS=%.2f Events=%s",
+                    result = pipeline.process_frame(
+                        frame,
                         frames_processed,
-                        throughput,
-                        intrusion_events,
                     )
+
+                    intrusion_events += len(result.events)
+                    
+                    if event_writer is not None:
+                        for event in result.events:
+                            event_writer.submit(event)
+
+                    elapsed = (
+                        time.perf_counter() - started_at
+                    )
+
+                    throughput = (
+                        frames_processed / elapsed
+                        if elapsed > 0 else 0.0
+                    )
+
+                    worker_state.update(
+                        status=(
+                            WorkerStatus.STOPPING
+                            if self.stop_event.is_set()
+                            else WorkerStatus.RUNNING
+                        ),
+                        frames_processed=frames_processed,
+                        intrusion_events=intrusion_events,
+                        throughput_fps=round(throughput, 2),
+                        last_frame_monotonic=time.monotonic(),
+                    )
+                    
+                    update_worker_metrics(
+                        frames=frames_processed,
+                        intrusions=intrusion_events,
+                        fps=throughput,
+                    )
+
+                    if event_writer is not None:
+                        update_database_metrics(event_writer.snapshot())
+
+                    if frames_processed % 100 == 0:
+                        logger.info(
+                            "Frames=%s FPS=%.2f Events=%s",
+                            frames_processed,
+                            throughput,
+                            intrusion_events,
+                        )
 
         except Exception as exc:
             logger.exception(
@@ -263,6 +341,11 @@ class AnalyticsWorker:
 
             if self.stream is not None:
                 self.stream.stop()
+            
+            worker_state.update(
+                stream_connected=False,
+                last_frame_monotonic=None,
+            )
 
             if (
                 worker_state.snapshot()["status"]

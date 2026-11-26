@@ -29,6 +29,13 @@ def evaluate_readiness() -> dict:
     )
 
     checks["worker_running"] = worker_running
+    
+    stream_connected = snapshot["stream_connected"]
+
+    checks["stream_connected"] = stream_connected
+
+    if not stream_connected:
+        reasons.append("Video source disconnected")
 
     if not worker_running:
         reasons.append(
@@ -97,6 +104,7 @@ def evaluate_readiness() -> dict:
 
     ready = (
         worker_running
+        and stream_connected
         and frame_processing
         and (
             not database_enabled
