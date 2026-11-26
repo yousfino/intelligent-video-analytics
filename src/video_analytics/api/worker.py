@@ -20,11 +20,14 @@ from video_analytics.database.repository import (
 from video_analytics.database.writer import AsyncEventWriter
 
 from video_analytics.api.prometheus_metrics import (
-    update_worker_metrics,
-    update_database_metrics,
+    update_worker_metrics
 )
 
 from contextlib import closing
+
+from video_analytics.database.health import (
+    evaluate_writer_health,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,12 +51,35 @@ class AnalyticsWorker:
         self.stop_event = threading.Event()
         self.thread = None
         self.stream = None
+        self.event_writer = None
+
+        self.database_enabled = (
+            os.getenv(
+                "ANALYTICS_DATABASE_ENABLED",
+                "false",
+            ).lower() == "true"
+        )
+
+    def database_health(self) -> dict:
+        writer = self.event_writer
+
+        snapshot = (
+            writer.snapshot()
+            if writer is not None
+            else None
+        )
+
+        return evaluate_writer_health(
+            snapshot=snapshot,
+            enabled=self.database_enabled,
+        )
 
     def start(self):
         if self.thread and self.thread.is_alive():
             raise RuntimeError("Worker is already running")
 
         self.stop_event.clear()
+        self.event_writer = None
 
         worker_state.update(
             status=WorkerStatus.STARTING,
@@ -173,11 +199,7 @@ class AnalyticsWorker:
                 config["events"]["output_path"]
             )
 
-            database_enabled = (
-                os.getenv("ANALYTICS_DATABASE_ENABLED", "false")
-                .lower() == "true"
-            )
-
+            database_enabled = self.database_enabled
 
             event_writer = None
 
@@ -194,6 +216,7 @@ class AnalyticsWorker:
                     )
 
                     event_writer.start()
+                    self.event_writer = event_writer
 
                     logger.info(
                         "Asynchronous PostgreSQL persistence enabled"
@@ -208,6 +231,7 @@ class AnalyticsWorker:
                     elif "event_repository" in locals():
                         event_repository.engine.dispose()
                     event_writer = None
+                    self.event_writer = None
 
             pipeline = AnalyticsPipeline(
                 detector=detector,
@@ -301,9 +325,6 @@ class AnalyticsWorker:
                         intrusions=intrusion_events,
                         fps=throughput,
                     )
-
-                    if event_writer is not None:
-                        update_database_metrics(event_writer.snapshot())
 
                     if frames_processed % 100 == 0:
                         logger.info(

@@ -17,7 +17,9 @@ from video_analytics.database.connection import (
 logger = logging.getLogger(__name__)
 
 
-def evaluate_readiness() -> dict:
+def evaluate_readiness(
+    database_health: dict | None = None,
+) -> dict:
     snapshot = worker_state.snapshot()
 
     checks = {}
@@ -101,6 +103,21 @@ def evaluate_readiness() -> dict:
             reasons.append("PostgreSQL unavailable")
 
     checks["database_available"] = database_available
+    writer_healthy = None
+
+    if database_enabled:
+        writer_healthy = (
+            database_health is not None
+            and database_health["healthy"] is True
+        )
+
+        if not writer_healthy:
+            if database_health is None:
+                reasons.append("Database writer unavailable")
+            else:
+                reasons.extend(database_health["reasons"])
+
+    checks["database_writer_healthy"] = writer_healthy
 
     ready = (
         worker_running
@@ -108,7 +125,10 @@ def evaluate_readiness() -> dict:
         and frame_processing
         and (
             not database_enabled
-            or database_available is True
+            or (
+                database_available is True
+                and writer_healthy is True
+            )
         )
     )
 

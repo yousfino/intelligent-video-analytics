@@ -31,6 +31,17 @@ from video_analytics.api.readiness import (
 
 from video_analytics.api.watchdog import WorkerWatchdog
 
+from fastapi import Request
+
+from video_analytics.database.health import (
+    evaluate_writer_health,
+)
+
+from video_analytics.api.prometheus_metrics import (
+    update_database_metrics,
+    update_database_health_metrics,
+)
+
 logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
@@ -161,15 +172,53 @@ def liveness():
         "service": "intelligent-video-analytics",
     }
 
+def get_database_health(request: Request) -> dict:
+    worker = getattr(
+        request.app.state,
+        "analytics_worker",
+        None,
+    )
+
+    if worker is not None:
+        return worker.database_health()
+
+    enabled = (
+        os.getenv(
+            "ANALYTICS_DATABASE_ENABLED",
+            "false",
+        ).lower() == "true"
+    )
+
+    return evaluate_writer_health(
+        snapshot=None,
+        enabled=enabled,
+    )
 
 @app.get("/ready")
-def readiness():
-    result = evaluate_readiness()
+def readiness(request: Request):
+    database_health = get_database_health(request)
+
+    result = evaluate_readiness(
+        database_health=database_health,
+    )
 
     return JSONResponse(
         status_code=(
             200 if result["status"] == "ready"
             else 503
+        ),
+        content=result,
+    )
+
+@app.get("/database/health")
+def database_writer_health(request: Request):
+    result = get_database_health(request)
+
+    return JSONResponse(
+        status_code=(
+            503
+            if result["healthy"] is False
+            else 200
         ),
         content=result,
     )
@@ -237,7 +286,22 @@ def list_events(
         )
 
 @app.get("/prometheus", include_in_schema=False)
-def prometheus_metrics():
+def prometheus_metrics(request: Request):
+    health = get_database_health(request)
+
+    snapshot = health["stats"]
+
+    if snapshot is None:
+        snapshot = {
+            "saved": 0,
+            "failed": 0,
+            "dropped": 0,
+            "pending": 0,
+        }
+
+    update_database_metrics(snapshot)
+    update_database_health_metrics(health)
+
     return Response(
         content=render_metrics(),
         media_type=CONTENT_TYPE_LATEST,

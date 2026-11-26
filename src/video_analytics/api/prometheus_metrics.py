@@ -51,6 +51,48 @@ db_queue_depth = Gauge(
     registry=registry,
 )
 
+db_writer_enabled = Gauge(
+    "iva_db_writer_enabled",
+    "Whether database persistence is enabled",
+    registry=registry,
+)
+
+db_writer_alive = Gauge(
+    "iva_db_writer_alive",
+    "Whether the database writer thread is alive",
+    registry=registry,
+)
+
+db_writer_healthy = Gauge(
+    "iva_db_writer_healthy",
+    "Whether the database writer is healthy",
+    registry=registry,
+)
+
+db_writer_heartbeat_age = Gauge(
+    "iva_db_writer_heartbeat_age_seconds",
+    "Seconds since the last database writer heartbeat",
+    registry=registry,
+)
+
+db_queue_utilization = Gauge(
+    "iva_db_queue_utilization",
+    "Fraction of database queue capacity in use",
+    registry=registry,
+)
+
+db_consecutive_failures = Gauge(
+    "iva_db_consecutive_failures",
+    "Consecutive events that failed persistence",
+    registry=registry,
+)
+
+db_write_in_flight = Gauge(
+    "iva_db_write_in_flight",
+    "Whether a database event is being processed",
+    registry=registry,
+)
+
 
 def update_worker_metrics(
     frames: int,
@@ -67,6 +109,45 @@ def update_database_metrics(snapshot: dict):
     db_events_failed.set(snapshot["failed"])
     db_events_dropped.set(snapshot["dropped"])
     db_queue_depth.set(snapshot["pending"])
+
+
+
+def update_database_health_metrics(health: dict):
+    snapshot = health["stats"] or {}
+
+    db_writer_enabled.set(
+        int(health["enabled"])
+    )
+
+    db_writer_alive.set(
+        int(snapshot.get("alive", False))
+    )
+
+    db_writer_healthy.set(
+        int(health["healthy"] is True)
+    )
+
+    heartbeat_age = snapshot.get(
+        "heartbeat_age_seconds"
+    )
+
+    db_writer_heartbeat_age.set(
+        heartbeat_age
+        if heartbeat_age is not None
+        else float("nan")
+    )
+
+    db_queue_utilization.set(
+        snapshot.get("queue_utilization", 0)
+    )
+
+    db_consecutive_failures.set(
+        snapshot.get("consecutive_failures", 0)
+    )
+
+    db_write_in_flight.set(
+        int(snapshot.get("in_flight", False))
+    )
 
 
 def render_metrics():
